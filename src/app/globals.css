@@ -96,3 +96,17 @@ body {
   color: white;
   cursor: pointer;
 }
+
+.clear-history-button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  background: #ffc107;
+  color: black;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.clear-history-button:hover {
+  background: #e0a800;
+}

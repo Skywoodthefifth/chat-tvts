@@ -31,6 +31,13 @@ export default function Home() {
       .catch(err => console.error('Error accessing microphone:', err));
   }, []);
 
+  useEffect(() => {
+    // Clear history on page reload
+    fetch('http://127.0.0.1:8000/api/v1/clear-history', {
+      method: 'POST',
+    }).then(() => console.log("Conversation history cleared on reload."));
+  }, []);
+
   const startRecording = () => {
     if (mediaRecorder.current) {
       mediaRecorder.current.start();
@@ -59,9 +66,6 @@ export default function Home() {
         method: 'POST',
         body: formData,
         mode: 'cors', // Add this line to fix CORS error
-        // headers: {
-        //   'Content-Type': 'multipart/form-data',
-        // },
       });
       
       const result = await response.json();
@@ -69,12 +73,30 @@ export default function Home() {
       // Add user message
       setMessages(prev => [...prev, { role: 'user', content: result.transcription }]);
       
-      // Add bot response (you can implement this part)
+      // Add bot response
       const botResponse = await generateBotResponse(result.transcription);
       setMessages(prev => [...prev, { role: 'bot', content: botResponse }]);
+
+      // Call TTS endpoint to get audio response
+      const ttsResponse = await fetch('http://127.0.0.1:8000/api/v1/tts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ text: botResponse }),
+        mode: 'cors', // Add this line to fix CORS error
+      });
+
+      if (ttsResponse.ok) {
+        const audioBlob = await ttsResponse.blob();
+        const audioUrl = URL.createObjectURL(audioBlob);
+        setAudioUrl(audioUrl); // Set audio URL for playback
+        const audio = new Audio(audioUrl);
+        audio.play(); // Play the audio immediately
+      }
       
     } catch (error) {
-      console.error('Transcription error:', error);
+      console.error('Error:', error);
     }
   };
 
@@ -99,6 +121,18 @@ export default function Home() {
   const saveAudioFile = () => {
     if (audioBlob) {
       saveAs(audioBlob, 'recording.wav');
+    }
+  };
+
+  const handleClearHistory = async () => {
+    try {
+      await fetch('http://127.0.0.1:8000/api/v1/clear-history', {
+        method: 'POST',
+      });
+      console.log("Conversation history cleared.");
+      setMessages([]); // Clear local messages
+    } catch (error) {
+      console.error("Error clearing history:", error);
     }
   };
 
@@ -133,6 +167,9 @@ export default function Home() {
               </>
             )}
           </div>
+          <button onClick={handleClearHistory} className="clear-history-button">
+            Clear
+          </button>
         </div>
   );
 }
