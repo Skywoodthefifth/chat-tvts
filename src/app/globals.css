@@ -8,7 +8,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var (--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
@@ -74,13 +74,14 @@ body {
 }
 
 .mic-button {
-  padding: 15px;
+  padding: 10px;
   border-radius: 50%;
   border: none;
   background: #dc3545;
   color: white;
   cursor: pointer;
   transition: all 0.3s;
+  flex-shrink: 0; /* Prevent shrinking */
 }
 
 .mic-button.recording {
@@ -105,6 +106,53 @@ body {
   color: black;
   cursor: pointer;
   transition: background 0.3s;
+}
+
+.clear-history-button:hover {
+  background: #e0a800;
+}
+
+.text-input-controls {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+  margin-bottom: 10px;
+  align-items: center; /* Align items vertically */
+}
+
+.text-input-box {
+  flex: 1;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 16px;
+  resize: none; /* Prevent resizing */
+  height: 50px; /* Set a default height */
+  overflow-y: auto; /* Enable vertical scrolling if needed */
+  white-space: pre-wrap; /* Preserve whitespace and wrap text */
+}
+
+.send-button,
+.clear-history-button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.send-button {
+  background: #007bff;
+  color: white;
+}
+
+.send-button:hover {
+  background: #0056b3;
+}
+
+.clear-history-button {
+  background: #ffc107;
+  color: black;
 }
 
 .clear-history-button:hover {
