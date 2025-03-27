@@ -6,11 +6,12 @@ import { saveAs } from 'file-saver'; // Import file-saver
 export default function Home() {
   const [messages, setMessages] = useState<Array<{role: string, content: string}>>([]);
   const [isRecording, setIsRecording] = useState(false);
-  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+  const audioBlob = useRef<Blob | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | undefined>(undefined); // New state for audio URL
   const [userInput, setUserInput] = useState<string>(''); // New state for text input
   const mediaRecorder = useRef<MediaRecorder | null>(null);
   const audioChunks = useRef<Blob[]>([]);
+  const [isLoading, setIsLoading] = useState(false); // New state for loading spinner
 
   // Initialize media recorder
   useEffect(() => {
@@ -23,9 +24,9 @@ export default function Home() {
         };
 
         mediaRecorder.current.onstop = async () => {
-          const audioBlob = new Blob(audioChunks.current, { type: 'audio/wav' });
-          setAudioBlob(audioBlob);
-          // setAudioUrl(URL.createObjectURL(audioBlob)); // Create URL for audio playback
+          const blob = new Blob(audioChunks.current, { type: 'audio/wav' });
+          audioBlob.current = blob; // Update useRef instead of useState
+          // setAudioUrl(URL.createObjectURL(blob)); // Create URL for audio playback
           audioChunks.current = [];
         };
       })
@@ -50,13 +51,20 @@ export default function Home() {
     if (mediaRecorder.current) {
       mediaRecorder.current.stop();
       setIsRecording(false);
+      setIsLoading(true); // Show loading spinner
+
+      // Add a 5-second delay before calling handleTranscribe
+      setTimeout(async () => {
+        await handleTranscribe();
+        setIsLoading(false); // Hide loading spinner after transcription
+      }, 5000);
     }
   };
 
   const handleTranscribe = async () => {
-    if (!audioBlob) return;
+    if (!audioBlob.current) return;
 
-    const file = new File([audioBlob], 'recording.wav', { type: 'audio/wav' });
+    const file = new File([audioBlob.current], 'recording.wav', { type: 'audio/wav' });
 
     try {
       // Send audio to your backend which uses OpenAI API
@@ -97,8 +105,8 @@ export default function Home() {
   };
 
   const saveAudioFile = () => {
-    if (audioBlob) {
-      saveAs(audioBlob, 'recording.wav');
+    if (audioBlob.current) {
+      saveAs(audioBlob.current, 'recording.wav');
     }
   };
 
@@ -112,6 +120,8 @@ export default function Home() {
     } catch (error) {
       console.error("Error clearing history:", error);
     }
+
+    setUserInput(''); // Clear input field
   };
 
   const handleSendMessage = async () => {
@@ -122,7 +132,8 @@ export default function Home() {
 
     // Add bot response
     const botResponse = await generateBotResponse(userInput);
-    setMessages(prev => [...prev, { role: 'bot', content: botResponse }]);
+
+    setUserInput(''); // Clear input field
 
     // Call TTS endpoint to get audio response
     const ttsResponse = await fetch('http://127.0.0.1:8000/api/v1/tts', {
@@ -134,6 +145,8 @@ export default function Home() {
       mode: 'cors', // Add this line to fix CORS error
     });
 
+    setMessages(prev => [...prev, { role: 'bot', content: botResponse }]);
+
     if (ttsResponse.ok) {
       const audioBlob = await ttsResponse.blob();
       const audioUrl = URL.createObjectURL(audioBlob);
@@ -141,8 +154,6 @@ export default function Home() {
       const audio = new Audio(audioUrl);
       audio.play(); // Play the audio immediately
     }
-
-    setUserInput(''); // Clear input field
   };
 
   return (
@@ -158,7 +169,7 @@ export default function Home() {
           </div>
           
           <div className="recording-controls">
-            {audioBlob && (
+            {audioBlob.current && (
               <>
                 <button hidden onClick={handleTranscribe} className="transcribe-button">
                   Submit
@@ -172,18 +183,13 @@ export default function Home() {
             <button 
               className={`mic-button ${isRecording ? 'recording' : ''}`}
               onMouseDown={startRecording}
-              onMouseUp={() => {
-                stopRecording();
-                handleTranscribe(); // Call handleTranscribe after stopping recording
-              }}
+              onMouseUp={stopRecording}
               onTouchStart={startRecording}
-              onTouchEnd={() => {
-                stopRecording();
-                handleTranscribe(); // Call handleTranscribe after stopping recording
-              }}
+              onTouchEnd={stopRecording}
             >
               🎤
             </button>
+            {isLoading && <div className="loading-spinner">⏳</div>} {/* Loading spinner */}
             <textarea 
               value={userInput} 
               onChange={(e) => setUserInput(e.target.value)} 
