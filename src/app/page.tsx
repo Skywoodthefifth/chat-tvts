@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react';
-import { saveAs } from 'file-saver'; // Import file-saver
 
 export default function Home() {
   const [messages, setMessages] = useState<Array<{role: string, content: string}>>([]);
