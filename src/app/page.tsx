@@ -1,7 +1,9 @@
 'use client'
 
 import { useState, useRef, useEffect, useLayoutEffect } from 'react';
+import Typewriter from './Typewriter';
 import 'dotenv/config';
+import TypingIndicator from './TypingIndicator';
 
 const MIN_TEXTAREA_HEIGHT = 32; // Minimum height for the textarea
 
@@ -143,29 +145,27 @@ export default function Home() {
         },
       });
       console.log("Conversation history cleared.");
-      setMessages([]); // Clear local messages
+      setMessages([]);
     } catch (error) {
       console.error("Error clearing history:", error);
     }
 
-    setUserInput(''); // Clear input field
+    setUserInput('');
   };
 
   const handleSendMessage = async () => {
     if (!userInput.trim()) return;
 
-    setIsDisableClicked(true); // Show loading spinner
-    setUserInput(''); // Clear input field
+    setIsDisableClicked(true);
+    setUserInput('');
 
-    // Add user message
     setMessages(prev => [...prev, { role: 'user', content: userInput }]);
 
-    // Add bot response
+  
     const botResponse = await generateBotResponse(userInput);
 
-    setUserInput(''); // Clear input field
+    setUserInput(''); 
 
-    // Call TTS endpoint to get audio response
     const ttsResponse = await fetch(`${url}/api/v1/tts`, {
       method: 'POST',
       headers: {
@@ -173,7 +173,7 @@ export default function Home() {
         'ngrok-skip-browser-warning': 'true',
       },
       body: JSON.stringify({ text: botResponse }),
-      mode: 'cors', // Add this line to fix CORS error
+      mode: 'cors',
     });
 
     setMessages(prev => [...prev, { role: 'bot', content: botResponse }]);
@@ -181,21 +181,30 @@ export default function Home() {
     if (ttsResponse.ok) {
       const audioBlob = await ttsResponse.blob();
       const audioUrl = URL.createObjectURL(audioBlob);
-      setAudioUrl(audioUrl); // Set audio URL for playback
+      setAudioUrl(audioUrl);
       const audio = new Audio(audioUrl);
-      audio.play(); // Play the audio immediately
+      audio.play();
     }
 
-    setIsDisableClicked(false); // Hide loading spinner
+    setIsDisableClicked(false);
   };
 
   return (
         <div className="chat-container">
+          <div className="logo-container">
+            <img src="/logo.png" alt="Logo" className="logo" />
+          </div>
           <div className="chat-messages">
             {messages.map((msg, index) => (
               <div key={index} className={`message ${msg.role}`}>
                 <div className={`bubble ${msg.role}`}>
-                  {msg.content}
+                  {msg.role === 'bot' ? (
+                    <>
+                      <Typewriter text={msg.content} speed={50} />
+                    </>
+                  ) : (
+                    msg.content
+                  )}
                 </div>
               </div>
             ))}
@@ -211,7 +220,8 @@ export default function Home() {
               </>
             )}
           </div>
-
+          
+          {isDisableClicked && <TypingIndicator name="TVTS Bot" />}
           <div className="text-input-controls">
             <button 
               disabled={isDisableClicked}
@@ -223,7 +233,7 @@ export default function Home() {
             >
               🎤
             </button>
-            {isLoading && <div className="loading-spinner">⏳</div>} {/* Loading spinner */}
+            {isLoading && (<div className="loading-spinner"> <span className="spinner" /> </div> )}
             <textarea 
               ref={textareaRef}
               style={{
@@ -234,6 +244,15 @@ export default function Home() {
               onChange={(e) => setUserInput(e.target.value)} 
               placeholder="Type your message here..." 
               className="text-input-box"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault(); 
+                  if(!isDisableClicked) 
+                  { 
+                    handleSendMessage();
+                  }
+                }
+              }}
             />
             <button disabled={isDisableClicked} onClick={handleSendMessage} className={`send-button ${isDisableClicked ? "cursor-not-allowed" : "cursor-pointer"}`}>
               Send
