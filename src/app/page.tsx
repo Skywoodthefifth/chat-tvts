@@ -1,6 +1,8 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useLayoutEffect } from 'react';
+
+const MIN_TEXTAREA_HEIGHT = 32; // Minimum height for the textarea
 
 export default function Home() {
   const [messages, setMessages] = useState<Array<{role: string, content: string}>>([]);
@@ -11,6 +13,19 @@ export default function Home() {
   const mediaRecorder = useRef<MediaRecorder | null>(null);
   const audioChunks = useRef<Blob[]>([]);
   const [isLoading, setIsLoading] = useState(false); // New state for loading spinner
+  const [isDisableClicked, setIsDisableClicked] = useState(false); // New state for disabling button
+
+  const textareaRef = useRef(null);
+
+  useLayoutEffect(() => {
+    // Reset height - important to shrink on delete
+    textareaRef.current.style.height = "inherit";
+    // Set height
+    textareaRef.current.style.height = `${Math.max(
+      textareaRef.current.scrollHeight,
+      MIN_TEXTAREA_HEIGHT
+    )}px`;
+  }, [userInput]);
 
   // Initialize media recorder
   useEffect(() => {
@@ -126,6 +141,9 @@ export default function Home() {
   const handleSendMessage = async () => {
     if (!userInput.trim()) return;
 
+    setIsDisableClicked(true); // Show loading spinner
+    setUserInput(''); // Clear input field
+
     // Add user message
     setMessages(prev => [...prev, { role: 'user', content: userInput }]);
 
@@ -153,6 +171,8 @@ export default function Home() {
       const audio = new Audio(audioUrl);
       audio.play(); // Play the audio immediately
     }
+
+    setIsDisableClicked(false); // Hide loading spinner
   };
 
   return (
@@ -180,7 +200,8 @@ export default function Home() {
 
           <div className="text-input-controls">
             <button 
-              className={`mic-button ${isRecording ? 'recording' : ''}`}
+              disabled={isDisableClicked}
+              className={`mic-button ${isRecording ? 'recording' : ''} ${isDisableClicked ? "cursor-not-allowed" : "cursor-pointer"}`}
               onMouseDown={startRecording}
               onMouseUp={stopRecording}
               onTouchStart={startRecording}
@@ -190,15 +211,20 @@ export default function Home() {
             </button>
             {isLoading && <div className="loading-spinner">⏳</div>} {/* Loading spinner */}
             <textarea 
+              ref={textareaRef}
+              style={{
+                minHeight: MIN_TEXTAREA_HEIGHT,
+                resize: 'none',
+              }}
               value={userInput} 
               onChange={(e) => setUserInput(e.target.value)} 
               placeholder="Type your message here..." 
               className="text-input-box"
             />
-            <button onClick={handleSendMessage} className="send-button">
+            <button disabled={isDisableClicked} onClick={handleSendMessage} className={`send-button ${isDisableClicked ? "cursor-not-allowed" : "cursor-pointer"}`}>
               Send
             </button>
-            <button onClick={handleClearHistory} className="clear-history-button">
+            <button disabled={isDisableClicked} onClick={handleClearHistory} className={`clear-history-button ${isDisableClicked ? "cursor-not-allowed" : "cursor-pointer"}`}>
               Clear
             </button>
           </div>
