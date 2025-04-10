@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useLayoutEffect } from 'react';
+import 'dotenv/config';
 
 const MIN_TEXTAREA_HEIGHT = 32; // Minimum height for the textarea
 
@@ -16,6 +17,8 @@ export default function Home() {
   const [isDisableClicked, setIsDisableClicked] = useState(false); // New state for disabling button
 
   const textareaRef = useRef(null);
+
+  const url = process.env.NEXT_PUBLIC_HOST || 'http://localhost:8000'; // Default to localhost if not set
 
   useLayoutEffect(() => {
     // Reset height - important to shrink on delete
@@ -49,8 +52,11 @@ export default function Home() {
 
   useEffect(() => {
     // Clear history on page reload
-    fetch('http://127.0.0.1:8000/api/v1/clear-history', {
+    fetch(`${url}/api/v1/clear-history`, {
       method: 'POST',
+      headers: {
+        'ngrok-skip-browser-warning': 'true',
+      },
     }).then(() => console.log("Conversation history cleared on reload."));
   }, []);
 
@@ -85,8 +91,11 @@ export default function Home() {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch('http://127.0.0.1:8000/api/v1/stt', {
+      const response = await fetch(`${url}/api/v1/stt`, {
         method: 'POST',
+        headers: {
+          'ngrok-skip-browser-warning': 'true',
+        },
         body: formData,
         mode: 'cors', // Add this line to fix CORS error
       });
@@ -104,10 +113,11 @@ export default function Home() {
   const generateBotResponse = async (text: string) => {
     // Implement your chatbot logic here
 
-    const response = await fetch('http://127.0.0.1:8000/api/v1/llm', {
+    const response = await fetch(`${url}/api/v1/llm`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true',
       },
       body: JSON.stringify({ message: text }),
       mode: 'cors', // Add this line to fix CORS error
@@ -126,8 +136,11 @@ export default function Home() {
 
   const handleClearHistory = async () => {
     try {
-      await fetch('http://127.0.0.1:8000/api/v1/clear-history', {
+      await fetch(`${url}/api/v1/clear-history`, {
         method: 'POST',
+        headers: {
+          'ngrok-skip-browser-warning': 'true',
+        },
       });
       console.log("Conversation history cleared.");
       setMessages([]); // Clear local messages
@@ -153,10 +166,11 @@ export default function Home() {
     setUserInput(''); // Clear input field
 
     // Call TTS endpoint to get audio response
-    const ttsResponse = await fetch('http://127.0.0.1:8000/api/v1/tts', {
+    const ttsResponse = await fetch(`${url}/api/v1/tts`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true',
       },
       body: JSON.stringify({ text: botResponse }),
       mode: 'cors', // Add this line to fix CORS error
